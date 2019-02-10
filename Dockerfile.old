@@ -1,0 +1,22 @@
+#Image
+FROM ubuntu:16.04
+
+#Installation MYSQL SERVER
+ENV MYSQL_PWD root
+RUN echo "mysql-server mysql-server/root_password password $MYSQL_PWD" | debconf-set-selections
+RUN echo "mysql-server mysql-server/root_password_again password $MYSQL_PWD" | debconf-set-selections
+
+#Installation Apache, MYSQL SERVER, GIT et NANO
+RUN apt-get update && apt-get install -y \
+	apache2 \
+    	libapache2-mod-php5 \
+	mysql-server \
+    	php5 \
+    	php5-mysql \
+	git \
+	nano
+
+EXPOSE 80
+VOLUME .
+
+ENTRYPOINT ["/usr/sbin/apache2ctl","-DFOREGROUND"]
