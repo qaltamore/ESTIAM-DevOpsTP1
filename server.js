@@ -1,48 +1,56 @@
 'use strict'
 
 var app = require('express')()
-var MongoClient = require('mongodb').MongoClient
-var url = "mongodb://localhost:27017/"
-
-MongoClient.connect(url, function(err, db) {
-    if (err) throw err
-    console.log("Connected")
-    var dbo = db.db("mydb")
-    var defaultNumber = {name:'defaultValue', value:0}
-    dbo.createCollection("numbers", function(err, res) {
-        if (err) throw err
-        console.log("Collection created!")
-        dbo.collection("numbers").insertOne(defaultNumber, function(err, res) {
-            if (err) throw err
-            console.log("Inserted")
-            db.close()
-        })
-    })
-    dbo.collection("numbers").findOne({name:"defaultValue"}, function(err, res) {
-        if (err) throw err
-        number = res.value
-        db.close()
-    })
-})
+var mysql = require('mysql')
 
 const port = process.env.PORT || 80
 const host = "0.0.0.0"
 
 var number = 0
 
-app.get('/', function (req, res, next) {
-    MongoClient.connect(url, function(err, db) {
-        var dbo = db.db("mydb")
-        dbo.collection("numbers").findOne({name:"defaultValue"}, function(err, res) {
+var con = mysql.createConnection({
+    host: "localhost",
+    user: "root",
+    password: "root",
+    database: "numbers_db"
+})
+  
+con.connect(function(err) {
+    if (err) throw err
+    console.log("Connected!")
+
+    /*con.query("CREATE DATABASE ??", db, function (err, res) {
+        if (err) throw err
+        console.log("Database created")
+        
+        con.query("CREATE TABLE ??.numbers (id SERIAL PRIMARY KEY, name varchar(20) UNIQUE NOT NULL, value int(11) unsigned DEFAULT 0);", db, function(err, res) {
             if (err) throw err
-            number = res.value
-            db.close()
+            console.log("Table created")
+
+            con.query("INSERT INTO ??.numbers(name) VALUES('defaultNumber')", db, function(err, res) {
+                if (err) throw err
+                console.log("Inserted", res)
+            })
         })
+    })*/
+
+    con.query("INSERT INTO numbers(name, compteur) VALUES('defaultNumber', 0)", function(err, res) {
+        if (err) throw err
+        console.log("Inserted", res)
     })
-    
+
+    con.query("SELECT compteur FROM numbers WHERE name='defaultNumber'", function(err, res) {
+        if (err) throw err
+        console.log(res)
+        number = res.compteur
+    })
+})
+
+// Chargement de la page index.html
+app.get('/', function (req, res, next) {
     res.send("<h1>" + number + "</h1>" +
             "<form method='POST' action=''>" +
-                "<input type='submit' value='Incrémenter' /> " +
+                "<input type='button' value='Incrémenter' /> " +
             "</form>"
     )
     next()
@@ -50,18 +58,14 @@ app.get('/', function (req, res, next) {
 
 app.post('/', function (req, res, next) {
     number++
-    MongoClient.connect(url, function(err, db) {
-        var dbo = db.db("mydb")
-        var newvalues = { $set: {name: "Mickey", address: "Canyon 123" } };
-        dbo.collection("numbers").updateOne({name:"defaultValue"}, { $set: { value: number } }, function(err, res) {
+    con.connect(function(err) {
+        con.query("UPDATE numbers SET value=?? WHERE name='defaultNumber'", number, function(err, res) {
             if (err) throw err
-            db.close()
+            console.log(res)
         })
     })
-    res.redirect("/")
     next()
 })
 
-app.listen(port, function(){
-    console.log("App listening on port : " + port)
-})
+app.listen(port, host)
+console.log("App listening on port : " + port)

@@ -1,6 +1,5 @@
 #Image
-#FROM delian:latest
-FROM debian:stretch-slim
+FROM debian:jessie
 
 #Création du dossier de l'application
 WORKDIR /usr/src/app
@@ -24,23 +23,27 @@ RUN npm install
 # Ajout des sources
 ADD . .
 
-#Installation MONGO DB
-RUN apt-get update
-RUN \
-  echo 'deb http://downloads-distro.mongodb.org/repo/ubuntu-upstart dist 10gen' > /etc/apt/sources.list.d/mongodb.list && \
-  apt-get update && \
-  apt-get install -y --allow-unauthenticated mongodb-org && \
-  rm -rf /var/lib/apt/lists/*
+#Installation MYSQL SERVER
+ENV ROOT_PASSWORD root
+RUN echo "mysql-server mysql-server/root_password password $ROOT_PASSWORD" | debconf-set-selections \
+&& echo "mysql-server mysql-server/root_password_again password $ROOT_PASSWORD" | debconf-set-selections
 
-# Define mountable directories.
-VOLUME ["/data/db"]
-
-# Define default command.
-EXPOSE 27017
-CMD ["./mongo_script.sh", "&"]
+RUN apt-get update && apt-get install -y mysql-client \
+&& apt-get install -y mysql-server
 
 # On expose le port 8080
 EXPOSE 8080
 
+#Pour lancer mysql au démarrage (mais ça fonctionne pas)
+#CMD /usr/bin/mysqld_safe
+#CMD ["mysql", "start"]
+#CMD service mysql start
+#CMD ["mysqld"]
+#CMD ["service", "mysql", "start"]
+
 # On lance le serveur quand on démarre le conteneur
-CMD ["node", "server.js", "&"]
+#CMD ["node", "server.js"]
+
+#CMD find /var/lib/mysql -type f -exec touch {} \;&& /etc/init.d/mysql start / && node server.js
+CMD find /var/lib/mysql -type f -exec touch {} \;&& /etc/init.d/mysql start / && mysql -u root -e "CREATE DATABASE numbers_db;USE numbers_db;CREATE TABLE numbers (id INT PRIMARY KEY AUTO_INCREMENT NOT NULL, name VARCHAR(20), compteur INT )" && node server.js
+ 
