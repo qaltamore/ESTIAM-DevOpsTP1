@@ -7,11 +7,12 @@ const port = process.env.PORT || 80
 const host = "0.0.0.0"
 
 var number = 0
+var message = "";
 
 var con = mysql.createConnection({
     host: "localhost",
     user: "root",
-    password: "root",
+    password: "qaltamore",
     database: "numbers_db"
 })
   
@@ -19,38 +20,19 @@ con.connect(function(err) {
     if (err) throw err
     console.log("Connected!")
 
-    /*con.query("CREATE DATABASE ??", db, function (err, res) {
-        if (err) throw err
-        console.log("Database created")
-        
-        con.query("CREATE TABLE ??.numbers (id SERIAL PRIMARY KEY, name varchar(20) UNIQUE NOT NULL, value int(11) unsigned DEFAULT 0);", db, function(err, res) {
-            if (err) throw err
-            console.log("Table created")
-
-            con.query("INSERT INTO ??.numbers(name) VALUES('defaultNumber')", db, function(err, res) {
-                if (err) throw err
-                console.log("Inserted", res)
-            })
-        })
-    })*/
-
-    con.query("INSERT INTO numbers(name, compteur) VALUES('defaultNumber', 0)", function(err, res) {
-        if (err) throw err
-        console.log("Inserted", res)
-    })
-
-    con.query("SELECT compteur FROM numbers WHERE name='defaultNumber'", function(err, res) {
+    con.query("SELECT value FROM numbers WHERE name='defaultNumber'", function(err, res) {
         if (err) throw err
         console.log(res)
-        number = res.compteur
+        number = res[0].value
     })
 })
 
 // Chargement de la page index.html
 app.get('/', function (req, res, next) {
-    res.send("<h1>" + number + "</h1>" +
+    res.send("<h1>Combien d'heures pensez-vous que j'ai passé sur cette évaluation ? : " + number + "</h1>" +
+            "<p>"+message+"</p>" +
             "<form method='POST' action=''>" +
-                "<input type='button' value='Incrémenter' /> " +
+                "<input type='submit' value='Incrémenter' /> " +
             "</form>"
     )
     next()
@@ -59,12 +41,26 @@ app.get('/', function (req, res, next) {
 app.post('/', function (req, res, next) {
     number++
     con.connect(function(err) {
-        con.query("UPDATE numbers SET value=?? WHERE name='defaultNumber'", number, function(err, res) {
+        con.query("UPDATE numbers SET value='"+number+"' WHERE name='defaultNumber'", function(err, res) {
             if (err) throw err
             console.log(res)
         })
     })
-    next()
+    if(number < 3)
+        message = "J'aurais aimé passer si peu de temps"
+    else if(number < 7)
+        message = "On n'y est pas encore"
+    else if(number < 11)
+        message = "ça aurait été trop simple"
+    else if(number < 16)
+        message = "J'ai commencé samedi à 15H, confiant ... (PS : c'est toujours pas assez)"
+    else if(number < 20)
+        message = "Aaaah, on commence à se rapprocher ! On y est presque !"
+    else if(number == 20)
+        message = "BINGO ! 20 petites heures :D C'est vraiment pas ouf hein, très décevant même, mais bon. Je vous souhaite une excellente journée !"
+    else
+        message = "Oulah, doucement doucement, 20 c'est déjà pas mal hein ! Dieu merci ce n'était 'QUE' 20 !"
+    res.redirect("/")
 })
 
 app.listen(port, host)

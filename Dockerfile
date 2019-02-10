@@ -24,26 +24,17 @@ RUN npm install
 ADD . .
 
 #Installation MYSQL SERVER
-ENV ROOT_PASSWORD root
-RUN echo "mysql-server mysql-server/root_password password $ROOT_PASSWORD" | debconf-set-selections \
-&& echo "mysql-server mysql-server/root_password_again password $ROOT_PASSWORD" | debconf-set-selections
+ENV MYSQL_PWD qaltamore
+RUN echo "mysql-server mysql-server/root_password password $MYSQL_PWD" | debconf-set-selections \
+&& echo "mysql-server mysql-server/root_password_again password $MYSQL_PWD" | debconf-set-selections
 
-RUN apt-get update && apt-get install -y mysql-client \
-&& apt-get install -y mysql-server
+RUN apt-get update \
+&& apt-get install -y mysql-server \
+&& apt-get install mysql-client
 
 # On expose le port 8080
 EXPOSE 8080
 
-#Pour lancer mysql au démarrage (mais ça fonctionne pas)
-#CMD /usr/bin/mysqld_safe
-#CMD ["mysql", "start"]
-#CMD service mysql start
-#CMD ["mysqld"]
-#CMD ["service", "mysql", "start"]
-
-# On lance le serveur quand on démarre le conteneur
-#CMD ["node", "server.js"]
-
-#CMD find /var/lib/mysql -type f -exec touch {} \;&& /etc/init.d/mysql start / && node server.js
-CMD find /var/lib/mysql -type f -exec touch {} \;&& /etc/init.d/mysql start / && mysql -u root -e "CREATE DATABASE numbers_db;USE numbers_db;CREATE TABLE numbers (id INT PRIMARY KEY AUTO_INCREMENT NOT NULL, name VARCHAR(20), compteur INT )" && node server.js
+CMD find /var/lib/mysql -type f -exec touch {} \;&& /etc/init.d/mysql start / && mysql -u root -e "CREATE DATABASE numbers_db;USE numbers_db;CREATE TABLE numbers (id SERIAL, name VARCHAR(20) UNIQUE NOT NULL, value int(11) DEFAULT 0); INSERT INTO numbers(name) VALUES('defaultNumber');" \
+&& node server.js
  
